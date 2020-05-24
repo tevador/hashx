@@ -59,7 +59,7 @@ the input is a 64-bit counter value. If you need to hash arbitrary data, build
 with:
 
 ```
-cmake .. -DHASHX_BLOCK_MODE
+cmake .. -DHASHX_BLOCK_MODE=ON
 ```
 
 This will change the API to accept `const void*, size_t` instead of `uint64_t`.
