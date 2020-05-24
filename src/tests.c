@@ -95,7 +95,7 @@ static bool test_hash_ctr1() {
 	/* printf("\n");
 	output_hex(hash, HASHX_SIZE);
 	printf("\n"); */
-	assert(equals_hex(hash, "58851ba751fb29d9368cca6c9b56c05ff153767064d5d02a6b5bce176d29f017"));
+	assert(equals_hex(hash, "aa0a9294e37de61561a6f67c6eb5cf7de7ffc83928d140b72cc27a00f398f889"));
 	return true;
 #else
 	return false;
@@ -106,7 +106,7 @@ static bool test_hash_ctr2() {
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter1, hash);
-	assert(equals_hex(hash, "68b49cca6ccaaf23ac6968c5b3170fd4f83c3856a5595bf3faeddcb05d957c98"));
+	assert(equals_hex(hash, "ebb08958003246d82bcdb3bde7b067e087e19b20583139b95a5e2e19673f741e"));
 	return true;
 #else
 	return false;
@@ -123,7 +123,7 @@ static bool test_hash_ctr3() {
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter2, hash);
-	assert(equals_hex(hash, "4d7fa0366d6cf01b1a274e345b96e3e69a25a5e71674f5759c0cc612337f2256"));
+	assert(equals_hex(hash, "408fe2f609bf743d7401b469f4c4da72b12deef846069f75edafe7dcc1aae9ef"));
 	return true;
 #else
 	return false;
@@ -134,7 +134,7 @@ static bool test_hash_ctr4() {
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter3, hash);
-	assert(equals_hex(hash, "7c4401db6e50c408db2a37ca45f8551485d843249e2e538b5750ca6fd0300aea"));
+	assert(equals_hex(hash, "e6a38a783dba1153a94babe97ee84c04348148e5440ac23859b80f37cf208e8f"));
 	return true;
 #else
 	return false;
@@ -147,7 +147,7 @@ static bool test_hash_block1() {
 #else
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, long_input, sizeof(long_input), hash);
-	assert(equals_hex(hash, "e4daaca120e2b3f503ad03f7e3d59ebb660c3bfd0cf4257f070bc9e5362bb008"));
+	assert(equals_hex(hash, "bcf8c222c9530e6bed3af1472b90258033a24bb4b31aa71db037b1b5d8cb11c4"));
 	return true;
 #endif
 }

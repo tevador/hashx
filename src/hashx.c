@@ -76,10 +76,10 @@ void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output) {
 		hashx_program_execute(ctx->program, r);
 	}
 
-	SIPROUND(r[0], r[1], r[2], r[3]);
-	SIPROUND(r[4], r[5], r[6], r[7]);
-	SIPROUND(r[0], r[1], r[2], r[3]);
-	SIPROUND(r[4], r[5], r[6], r[7]);
+	/* Hash finalization with 1 SipRound per 4 registers.
+	 * This is required to pass SMHasher.
+	 * Adding more SipRounds doesn't seem to have any effects on the
+	 * quality of the hash. TODO: Evaluate from a security standpoint. */
 	SIPROUND(r[0], r[1], r[2], r[3]);
 	SIPROUND(r[4], r[5], r[6], r[7]);
 
@@ -89,10 +89,10 @@ void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output) {
 	uint8_t* temp_hash = (uint8_t*)output;
 #endif
 
-	store64(temp_hash + 0, r[0] ^ r[1]);
-	store64(temp_hash + 8, r[2] ^ r[3]);
-	store64(temp_hash + 16, r[4] ^ r[5]);
-	store64(temp_hash + 24, r[6] ^ r[7]);
+	store64(temp_hash +  0, r[0] ^ r[4]);
+	store64(temp_hash +  8, r[1] ^ r[5]);
+	store64(temp_hash + 16, r[2] ^ r[6]);
+	store64(temp_hash + 24, r[3] ^ r[7]);
 
 #if HASHX_SIZE != 32
 	memcpy(output, temp_hash, HASHX_SIZE);
