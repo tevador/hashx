@@ -458,7 +458,7 @@ void hashx_blake2b_4r(const blake2b_param* params, const void* in,
 	}
 
 	memcpy(state.buf, pin, inlen);
-	blake2b_increment_counter(&state, state.buflen);
+	blake2b_increment_counter(&state, inlen);
 	blake2b_set_lastblock(&state);
 	blake2b_compress_4r(&state, state.buf);
 
