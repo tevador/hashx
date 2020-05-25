@@ -11,19 +11,6 @@ the Intel Ivy Bridge architecture). Extra care is taken to avoid optimizations
 and to ensure that each function takes exactly the same number of CPU cycles
 (currently 510 instructions over 170 cycles).
 
-## Build
-
-A C99-compatible compiler and `cmake` are required.
-
-```
-git clone https://github.com/tevador/hashx.git
-cd hashx
-mkdir build
-cd build
-cmake ..
-make
-```
-
 ## API
 
 The API consists of 4 functions and is documented in the public header file
@@ -54,22 +41,49 @@ int main() {
 }
 ```
 
+## Build
+
+A C99-compatible compiler and `cmake` are required.
+
+```
+git clone https://github.com/tevador/hashx.git
+cd hashx
+mkdir build
+cd build
+cmake .. [-DHASHX_BLOCK_MODE=ON] [-DHASHX_SIZE=<1-32>] [-DHASHX_SALT="my custom hash"]
+make
+```
+
+### Block mode (default: off)
+
 Because HashX is meant to be used in proof-of-work schemes and client puzzles,
 the input is a 64-bit counter value. If you need to hash arbitrary data, build
-with:
+with `-DHASHX_BLOCK_MODE=ON`. This will change the API to accept `const void*, size_t` instead of `uint64_t`.
+However, it is strongly recommended to use the counter mode, which is up to 50% faster for short inputs.
 
-```
-cmake .. -DHASHX_BLOCK_MODE=ON
-```
+### Hash size (default: 32)
 
-This will change the API to accept `const void*, size_t` instead of `uint64_t`.
-However, we strongly recommend to use the more efficient counter mode.
+The default hash output size is 32 bytes (256 bits). If you want to reduce the output
+size, build with, for example, `-DHASHX_SIZE=20`. Output sizes in the range of 1-32 bytes
+are supported.
+
+### Generator salt (default: "HashX v1")
+
+An implementation-specific salt value may be specified when building, for example: `-DHASHX_SALT="my custom hash"`.
+This value is used as a salt when generating hash instances. The maximum supported
+salt size is 15 characters.
 
 ## Performance
 
 HashX was designed for fast verification. Generating a hash function from seed
 takes about 50 μs and a 64-bit nonce can be hashed in under 100 ns (in compiled
 mode) or in about 1-2 μs (in interpreted mode).
+
+## Security
+
+HashX passes all hash quality tests in [SMHasher](https://github.com/tevador/smhasher) and should provide
+strong preimage resistance. No other security guarantees are made. Using HashX
+outside of the scope of proof of work or client puzzles is not recommended.
 
 ## Protocols based on HashX
 
