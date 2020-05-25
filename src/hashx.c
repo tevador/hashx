@@ -83,18 +83,38 @@ void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output) {
 	SIPROUND(r[0], r[1], r[2], r[3]);
 	SIPROUND(r[4], r[5], r[6], r[7]);
 
-#if HASHX_SIZE != 32
-	uint8_t temp_hash[32];
-#else
-	uint8_t* temp_hash = (uint8_t*)output;
+	/* output */
+#if HASHX_SIZE > 0
+	/* optimized output for hash sizes that are multiples of 8 */
+#if HASHX_SIZE % 8 == 0
+	const uint8_t* temp_out = (const uint8_t*)output;
+#if HASHX_SIZE >= 8
+	store64(temp_out + 0, r[0] ^ r[4]);
 #endif
-
-	store64(temp_hash +  0, r[0] ^ r[4]);
-	store64(temp_hash +  8, r[1] ^ r[5]);
-	store64(temp_hash + 16, r[2] ^ r[6]);
-	store64(temp_hash + 24, r[3] ^ r[7]);
-
-#if HASHX_SIZE != 32
-	memcpy(output, temp_hash, HASHX_SIZE);
+#if HASHX_SIZE >= 16
+	store64(temp_out + 8, r[1] ^ r[5]);
+#endif
+#if HASHX_SIZE >= 24
+	store64(temp_out + 16, r[2] ^ r[6]);
+#endif
+#if HASHX_SIZE >= 32
+	store64(temp_out + 24, r[3] ^ r[7]);
+#endif
+#else /* any output size */
+	uint8_t temp_out[32];
+#if HASHX_SIZE > 0
+	store64(temp_out + 0, r[0] ^ r[4]);
+#endif
+#if HASHX_SIZE > 8
+	store64(temp_out + 8, r[1] ^ r[5]);
+#endif
+#if HASHX_SIZE > 16
+	store64(temp_out + 16, r[2] ^ r[6]);
+#endif
+#if HASHX_SIZE > 24
+	store64(temp_out + 24, r[3] ^ r[7]);
+#endif
+	memcpy(output, temp_out, HASHX_SIZE);
+#endif
 #endif
 }
