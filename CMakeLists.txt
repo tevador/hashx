@@ -28,6 +28,27 @@ if(HASHX_BLOCK_MODE)
   add_definitions(-DHASHX_BLOCK_MODE)
 endif()
 
+set(HASHX_SIZE CACHE STRING "Hash function output size in bytes")
+
+if(HASHX_SIZE)
+  if(HASHX_SIZE GREATER 32)
+    message(SEND_ERROR "The maximum hash size is 32 bytes")
+  else()
+    add_definitions(-DHASHX_SIZE=${HASHX_SIZE})
+  endif()
+endif()
+
+set(HASHX_SALT CACHE STRING "Implementation-specific salt value")
+
+if(HASHX_SALT)
+  string(LENGTH ${HASHX_SALT} HASHX_SALT_LENGTH)
+  if(HASHX_SALT_LENGTH GREATER 15)
+    message(SEND_ERROR "The maximum salt length is 15 characters")
+  else()
+    add_definitions(-DHASHX_SALT=${HASHX_SALT})
+  endif()
+endif()
+
 add_library(${PROJECT_NAME} ${hashx_sources})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)

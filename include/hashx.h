@@ -55,11 +55,6 @@
 #define HASHX_SIZE 32
 #endif
 
-/* Salt used when generating hash functions. Useful for domain separation. */
-#ifndef HASHX_SALT
-#define HASHX_SALT "HashX v1"
-#endif
-
 /* Opaque struct representing a HashX instance */
 typedef struct hashx_ctx hashx_ctx;
 

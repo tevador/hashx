@@ -9,6 +9,14 @@
 #include "compiler.h"
 #include "program.h"
 
+#define STRINGIZE_INNER(x) #x
+#define STRINGIZE(x) STRINGIZE_INNER(x)
+
+/* Salt used when generating hash functions. Useful for domain separation. */
+#ifndef HASHX_SALT
+#define HASHX_SALT HashX v1
+#endif
+
 /* Blake2b params used to generate program keys */
 const blake2b_param hashx_blake2_params = {
 	.digest_length = 64,
@@ -20,7 +28,7 @@ const blake2b_param hashx_blake2_params = {
 	.node_depth = 0,
 	.inner_length = 0,
 	.reserved = { 0 },
-	.salt = HASHX_SALT,
+	.salt = STRINGIZE(HASHX_SALT),
 	.personal = { 0 }
 };
 

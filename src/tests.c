@@ -89,6 +89,9 @@ static bool test_make1() {
 }
 
 static bool test_hash_ctr1() {
+#ifdef HASHX_SALT
+	return false;
+#endif
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter2, hash);
@@ -103,6 +106,9 @@ static bool test_hash_ctr1() {
 }
 
 static bool test_hash_ctr2() {
+#ifdef HASHX_SALT
+	return false;
+#endif
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter1, hash);
@@ -120,6 +126,9 @@ static bool test_make2() {
 }
 
 static bool test_hash_ctr3() {
+#ifdef HASHX_SALT
+	return false;
+#endif
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter2, hash);
@@ -131,6 +140,9 @@ static bool test_hash_ctr3() {
 }
 
 static bool test_hash_ctr4() {
+#ifdef HASHX_SALT
+	return false;
+#endif
 #ifndef HASHX_BLOCK_MODE
 	char hash[HASHX_SIZE];
 	hashx_exec(ctx_int, counter3, hash);
@@ -142,6 +154,9 @@ static bool test_hash_ctr4() {
 }
 
 static bool test_hash_block1() {
+#ifdef HASHX_SALT
+	return false;
+#endif
 #ifndef HASHX_BLOCK_MODE
 	return false;
 #else
