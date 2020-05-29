@@ -9,7 +9,7 @@ HashX functions are generated as a carefully crafted sequence of integer
 operations to fully saturate a 3-way superscalar CPU pipeline (modeled after
 the Intel Ivy Bridge architecture). Extra care is taken to avoid optimizations
 and to ensure that each function takes exactly the same number of CPU cycles
-(currently 510 instructions over 170 cycles).
+(currently 512 instructions over 192 cycles).
 
 ## API
 
@@ -65,7 +65,7 @@ However, it is strongly recommended to use the counter mode, which is up to 50% 
 
 The default hash output size is 32 bytes (256 bits). If you want to reduce the output
 size, build with, for example, `-DHASHX_SIZE=20`. Output sizes in the range of 1-32 bytes
-are supported.
+are supported. Shorter output sizes are formed by simply truncating the full 256-bit hash.
 
 ### Generator salt (default: "HashX v1")
 
@@ -84,6 +84,9 @@ mode) or in about 1-2 μs (in interpreted mode).
 HashX passes all hash quality tests in [SMHasher](https://github.com/tevador/smhasher) and should provide
 strong preimage resistance. No other security guarantees are made. Using HashX
 outside of the scope of proof of work or client puzzles is not recommended.
+
+In particular, no secret values should be used as inputs to HashX because the generated instructions
+include data-dependent branches by design.
 
 ## Protocols based on HashX
 
@@ -121,7 +124,3 @@ tries with a different hash function.
 In this protocol, each HashX function provides only 65536 attempts before it
 must be discarded. This limits the parallelization advantage of GPUs and FPGAs.
 A CPU core will be able to test about 200 different hash functions per second.
-
-
-
-

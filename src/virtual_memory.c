@@ -3,7 +3,7 @@
 
 #include "virtual_memory.h"
 
-#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef HASHX_WIN
 #include <windows.h>
 #else
 #ifdef __APPLE__
@@ -20,7 +20,7 @@
 #define PAGE_EXECUTE_READWRITE (PROT_READ | PROT_WRITE | PROT_EXEC)
 #endif
 
-#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef HASHX_WIN
 
 static int set_privilege(const char* pszPrivilege, BOOL bEnable) {
 	HANDLE           hToken;
@@ -54,7 +54,7 @@ static int set_privilege(const char* pszPrivilege, BOOL bEnable) {
 
 void* hashx_vm_alloc(size_t bytes) {
 	void* mem;
-#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef HASHX_WIN
 	mem = VirtualAlloc(NULL, bytes, MEM_COMMIT, PAGE_READWRITE);
 #else
 	mem = mmap(NULL, bytes, PAGE_READWRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -65,7 +65,7 @@ void* hashx_vm_alloc(size_t bytes) {
 }
 
 static inline int page_protect(void* ptr, size_t bytes, int rules) {
-#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef HASHX_WIN
 	DWORD oldp;
 	if (!VirtualProtect(ptr, bytes, (DWORD)rules, &oldp)) {
 		return 0;
@@ -87,11 +87,11 @@ void hashx_vm_rx(void* ptr, size_t bytes) {
 
 void* hashx_vm_alloc_huge(size_t bytes) {
 	void* mem;
-#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef HASHX_WIN
 	set_privilege("SeLockMemoryPrivilege", 1);
-	auto pageMinimum = GetLargePageMinimum();
-	if (pageMinimum > 0) {
-		mem = VirtualAlloc(NULL, ALIGN_SIZE(bytes, pageMinimum), MEM_COMMIT
+	auto page_min = GetLargePageMinimum();
+	if (page_min > 0) {
+		mem = VirtualAlloc(NULL, ALIGN_SIZE(bytes, page_min), MEM_COMMIT
 			| MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);
 	}
 	else {
@@ -99,15 +99,15 @@ void* hashx_vm_alloc_huge(size_t bytes) {
 	}
 #else
 #ifdef __APPLE__
-	mem = mmap(NULL, bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
+	mem = mmap(NULL, bytes, PAGE_READWRITE, MAP_PRIVATE | MAP_ANONYMOUS,
 		VM_FLAGS_SUPERPAGE_SIZE_2MB, 0);
 #elif defined(__FreeBSD__)
-	mem = mmap(NULL, bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS
+	mem = mmap(NULL, bytes, PAGE_READWRITE, MAP_PRIVATE | MAP_ANONYMOUS
 		| MAP_ALIGNED_SUPER, -1, 0);
 #elif defined(__OpenBSD__)
 	mem = MAP_FAILED; // OpenBSD does not support huge pages
 #else
-	mem = mmap(NULL, bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS
+	mem = mmap(NULL, bytes, PAGE_READWRITE, MAP_PRIVATE | MAP_ANONYMOUS
 		| MAP_HUGETLB | MAP_POPULATE, -1, 0);
 #endif
 	if (mem == MAP_FAILED) {
@@ -118,7 +118,7 @@ void* hashx_vm_alloc_huge(size_t bytes) {
 }
 
 void hashx_vm_free(void* ptr, size_t bytes) {
-#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef HASHX_WIN
 	VirtualFree(ptr, 0, MEM_RELEASE);
 #else
 	munmap(ptr, bytes);

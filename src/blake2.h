@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <stddef.h>
+#include <hashx.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -60,10 +61,10 @@ enum {
 	1 / !!(sizeof(blake2b_param) == sizeof(uint64_t) * CHAR_BIT)
 };
 
-int hashx_blake2b_init_param(blake2b_state* S, const blake2b_param* P);
-int hashx_blake2b_update(blake2b_state* S, const void* in, size_t inlen);
-int hashx_blake2b_final(blake2b_state* S, void* out, size_t outlen);
-void hashx_blake2b_4r(const blake2b_param* P, const void* in, size_t inlen, void* out);
+HASHX_PRIVATE int hashx_blake2b_init_param(blake2b_state* S, const blake2b_param* P);
+HASHX_PRIVATE int hashx_blake2b_update(blake2b_state* S, const void* in, size_t inlen);
+HASHX_PRIVATE int hashx_blake2b_final(blake2b_state* S, void* out, size_t outlen);
+HASHX_PRIVATE void hashx_blake2b_4r(const blake2b_param* P, const void* in, size_t inlen, void* out);
 
 #if defined(__cplusplus)
 }

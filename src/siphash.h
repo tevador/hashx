@@ -5,8 +5,9 @@
 #define SIPHASH_H
 
 #include <stdint.h>
+#include <hashx.h>
 
-#define ROTL(x,b) (((x) << (b)) | ((x) >> (64 - (b))))
+#define ROTL(x, b) (((x) << (b)) | ((x) >> (64 - (b))))
 #define SIPROUND(v0, v1, v2, v3) \
   do { \
     v0 += v1; v2 += v3; v1 = ROTL(v1, 13);   \
@@ -24,8 +25,8 @@ typedef struct siphash_state {
 extern "C" {
 #endif
 
-uint64_t hashx_siphash13_ctr(uint64_t input, const siphash_state* keys);
-void hashx_siphash24_ctr_state512(const siphash_state* keys, uint64_t input, uint64_t state_out[8]);
+HASHX_PRIVATE uint64_t hashx_siphash13_ctr(uint64_t input, const siphash_state* keys);
+HASHX_PRIVATE void hashx_siphash24_ctr_state512(const siphash_state* keys, uint64_t input, uint64_t state_out[8]);
 
 #ifdef __cplusplus
 }

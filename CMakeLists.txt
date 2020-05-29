@@ -1,7 +1,12 @@
 # Copyright (c) 2020 tevador <tevador@gmail.com>
 # See LICENSE for licensing information
 
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 2.8.8)
+
+set(HASHX_VERSION 1)
+set(HASHX_VERSION_MINOR 0)
+set(HASHX_VERSION_PATCH 0)
+set(HASHX_VERSION_STR "${HASHX_VERSION}.${HASHX_VERSION_MINOR}.${HASHX_VERSION_PATCH}")
 
 project(hashx)
 
@@ -49,23 +54,29 @@ if(HASHX_SALT)
   endif()
 endif()
 
-add_library(${PROJECT_NAME} ${hashx_sources})
+add_library(hashx SHARED ${hashx_sources})
+set_property(TARGET hashx PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET hashx PROPERTY PUBLIC_HEADER include/hashx.h)
+include_directories(hashx
+  include/)
+target_compile_definitions(hashx PRIVATE HASHX_SHARED)
+set_target_properties(hashx PROPERTIES VERSION ${HASHX_VERSION_STR}
+                                       SOVERSION ${HASHX_VERSION})
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET ${PROJECT_NAME} PROPERTY PUBLIC_HEADER include/hashx.h)
+add_library(hashx_static STATIC ${hashx_sources})
+set_property(TARGET hashx_static PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(hashx_static PROPERTIES OUTPUT_NAME hashx)
 
 include(GNUInstallDirs)
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS hashx hashx_static
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-include_directories(${PROJECT_NAME}
-  include/)
 
 add_executable(hashx-tests
   src/tests.c)
 include_directories(hashx-tests
   include/)
+target_compile_definitions(hashx-tests PRIVATE HASHX_STATIC)
 target_link_libraries(hashx-tests
-  PRIVATE ${PROJECT_NAME})
+  PRIVATE hashx_static)

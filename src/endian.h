@@ -3,14 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
-
-#if defined(_MSC_VER)
-#define FORCE_INLINE __inline
-#elif defined(__GNUC__) || defined(__clang__)
-#define FORCE_INLINE __inline__
-#else
-#define FORCE_INLINE
-#endif
+#include "force_inline.h"
 
 /* Argon2 Team - Begin Code */
 /*

@@ -87,7 +87,7 @@ void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output) {
 #if HASHX_SIZE > 0
 	/* optimized output for hash sizes that are multiples of 8 */
 #if HASHX_SIZE % 8 == 0
-	const uint8_t* temp_out = (const uint8_t*)output;
+	uint8_t* temp_out = (uint8_t*)output;
 #if HASHX_SIZE >= 8
 	store64(temp_out + 0, r[0] ^ r[4]);
 #endif

@@ -6,7 +6,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
 #include <hashx.h>
 #include "instruction.h"
 #include "siphash.h"
@@ -27,6 +26,8 @@ typedef struct hashx_program {
 	int wide_mul_count;
 	int cpu_latencies[8];
 	int asic_latencies[8];
+	int branch_count;
+	int branches[16];
 #endif
 } hashx_program;
 
@@ -34,11 +35,11 @@ typedef struct hashx_program {
 extern "C" {
 #endif
 
-bool hashx_program_generate(const siphash_state* key, hashx_program* program);
+HASHX_PRIVATE bool hashx_program_generate(const siphash_state* key, hashx_program* program);
 
-void hashx_program_execute(const hashx_program* program, uint64_t r[8]);
+HASHX_PRIVATE void hashx_program_execute(const hashx_program* program, uint64_t r[8]);
 
-void hashx_program_asm_x86(const hashx_program* program);
+HASHX_PRIVATE void hashx_program_asm_x86(const hashx_program* program);
 
 #ifdef __cplusplus
 }

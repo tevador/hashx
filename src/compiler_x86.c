@@ -26,16 +26,22 @@
 static const uint8_t x86_prologue[] = {
 #ifndef WINABI
 	0x48, 0x89, 0xF9,             /* mov rcx, rdi */
-	0x4C, 0x89, 0xE6,             /* mov rsi, r12 */
-	0x4C, 0x89, 0xEF,             /* mov rdi, r13 */
-	0x41, 0x56,                   /* push r14 */
-	0x41, 0x57,                   /* push r15 */
+	0x48, 0x83, 0xEC, 0x20,       /* sub rsp, 32 */
+	0x4C, 0x89, 0x24, 0x24,       /* mov qword ptr [rsp+0], r12 */
+	0x4C, 0x89, 0x6C, 0x24, 0x08, /* mov qword ptr [rsp+8], r13 */
+	0x4C, 0x89, 0x74, 0x24, 0x10, /* mov qword ptr [rsp+16], r14 */
+	0x4C, 0x89, 0x7C, 0x24, 0x18, /* mov qword ptr [rsp+24], r15 */
 #else
 	0x4C, 0x89, 0x64, 0x24, 0x08, /* mov qword ptr [rsp+8], r12 */
 	0x4C, 0x89, 0x6C, 0x24, 0x10, /* mov qword ptr [rsp+16], r13 */
 	0x4C, 0x89, 0x74, 0x24, 0x18, /* mov qword ptr [rsp+24], r14 */
 	0x4C, 0x89, 0x7C, 0x24, 0x20, /* mov qword ptr [rsp+32], r15 */
+	0x48, 0x83, 0xEC, 0x10,       /* sub rsp, 16 */
+	0x48, 0x89, 0x34, 0x24,       /* mov qword ptr [rsp+0], rsi */
+	0x48, 0x89, 0x7C, 0x24, 0x08, /* mov qword ptr [rsp+8], rdi */
 #endif
+	0x31, 0xF6,                   /* xor esi, esi */
+	0x8D, 0x7E, 0xFF,             /* lea edi, [rsi-1] */
 	0x4C, 0x8B, 0x01,             /* mov r8, qword ptr [rcx+0] */
 	0x4C, 0x8B, 0x49, 0x08,       /* mov r9, qword ptr [rcx+8] */
 	0x4C, 0x8B, 0x51, 0x10,       /* mov r10, qword ptr [rcx+16] */
@@ -56,11 +62,15 @@ static const uint8_t x86_epilogue[] = {
 	0x4C, 0x89, 0x71, 0x30,       /* mov qword ptr [rcx+48], r14 */
 	0x4C, 0x89, 0x79, 0x38,       /* mov qword ptr [rcx+56], r15 */
 #ifndef WINABI
-	0x41, 0x5F,                   /* pop r15 */
-	0x41, 0x5E,                   /* pop r14 */
-	0x49, 0x89, 0xFD,             /* mov r13, rdi */
-	0x49, 0x89, 0xF4,             /* mov r12, rsi */
+	0x4C, 0x8B, 0x24, 0x24,       /* mov r12, qword ptr [rsp+0] */
+	0x4C, 0x8B, 0x6C, 0x24, 0x08, /* mov r13, qword ptr [rsp+8] */
+	0x4C, 0x8B, 0x74, 0x24, 0x10, /* mov r14, qword ptr [rsp+16] */
+	0x4C, 0x8B, 0x7C, 0x24, 0x18, /* mov r15, qword ptr [rsp+24] */
+	0x48, 0x83, 0xC4, 0x20,       /* add rsp, 32 */
 #else
+	0x48, 0x8B, 0x34, 0x24,       /* mov rsi, qword ptr [rsp+0] */
+	0x48, 0x8B, 0x7C, 0x24, 0x08, /* mov rdi, qword ptr [rsp+8] */
+	0x48, 0x83, 0xC4, 0x10,       /* add rsp, 16 */
 	0x4C, 0x8B, 0x64, 0x24, 0x08, /* mov r12, qword ptr [rsp+8] */
 	0x4C, 0x8B, 0x6C, 0x24, 0x10, /* mov r13, qword ptr [rsp+16] */
 	0x4C, 0x8B, 0x74, 0x24, 0x18, /* mov r14, qword ptr [rsp+24] */
@@ -72,6 +82,7 @@ static const uint8_t x86_epilogue[] = {
 void hashx_compile_x86(const hashx_program* program, uint8_t* code) {
 	hashx_vm_rw(code, COMP_CODE_SIZE);
 	uint8_t* pos = code;
+	uint8_t* target = NULL;
 	EMIT(pos, x86_prologue);
 	for (int i = 0; i < program->code_size; ++i) {
 		const instruction* instr = &program->code[i];
@@ -80,13 +91,13 @@ void hashx_compile_x86(const hashx_program* program, uint8_t* code) {
 		case INSTR_UMULH_R:
 			EMIT_U64(pos, 0x8b4ce0f749c08b49 |
 				(((uint64_t)instr->src) << 40) |
-				(instr->dst << 16));
+				(((uint64_t)instr->dst) << 16));
 			EMIT_BYTE(pos, 0xc2 + 8 * instr->dst);
 			break;
 		case INSTR_SMULH_R:
 			EMIT_U64(pos, 0x8b4ce8f749c08b49 |
 				(((uint64_t)instr->src) << 40) |
-				(instr->dst << 16));
+				(((uint64_t)instr->dst) << 16));
 			EMIT_BYTE(pos, 0xc2 + 8 * instr->dst);
 			break;
 		case INSTR_MUL_R:
@@ -121,6 +132,15 @@ void hashx_compile_x86(const hashx_program* program, uint8_t* code) {
 			EMIT_U16(pos, 0x8149);
 			EMIT_BYTE(pos, 0xf0 | instr->dst);
 			EMIT_U32(pos, instr->imm32);
+			break;
+		case INSTR_TARGET:
+			target = pos; /* +2 */
+			EMIT_U32(pos, 0x440fff85);
+			EMIT_BYTE(pos, 0xf7);
+			break;
+		case INSTR_BRANCH:
+			EMIT_U64(pos, ((uint64_t)instr->imm32) << 32 | 0xc2f7f209);
+			EMIT_U16(pos, ((target - pos) << 8) | 0x74);
 			break;
 		default:
 			UNREACHABLE;

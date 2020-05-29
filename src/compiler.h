@@ -6,14 +6,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
 #include <hashx.h>
 #include "virtual_memory.h"
 #include "program.h"
 
-void hashx_compile_x86(const hashx_program* program, uint8_t* code);
+HASHX_PRIVATE void hashx_compile_x86(const hashx_program* program, uint8_t* code);
 
-void hashx_compile_a64(const hashx_program* program, uint8_t* code);
+HASHX_PRIVATE void hashx_compile_a64(const hashx_program* program, uint8_t* code);
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define HASHX_COMPILER 1
@@ -26,8 +25,8 @@ void hashx_compile_a64(const hashx_program* program, uint8_t* code);
 #define hashx_compile
 #endif
 
-bool hashx_compiler_init(hashx_ctx* compiler);
-void hashx_compiler_destroy(hashx_ctx* compiler);
+HASHX_PRIVATE bool hashx_compiler_init(hashx_ctx* compiler);
+HASHX_PRIVATE void hashx_compiler_destroy(hashx_ctx* compiler);
 
 #define COMP_PAGE_SIZE 4096
 #define COMP_RESERVE_SIZE 1024

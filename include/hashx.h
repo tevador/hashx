@@ -67,6 +67,28 @@ typedef enum hashx_type {
 /* Sentinel value used to indicate unsupported type */
 #define HASHX_NOTSUPP ((hashx_ctx*)-1)
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#define HASHX_WIN
+#endif
+
+/* Shared/static library definitions */
+#ifdef HASHX_SHARED
+  #ifdef HASHX_WIN
+    #define HASHX_API __declspec(dllexport)
+  #else
+    #define HASHX_API __attribute__ ((visibility ("default")))
+    #define HASHX_PRIVATE __attribute__ ((visibility ("hidden")))
+  #endif
+#elif defined(HASHX_WIN) && !defined(HASHX_STATIC)
+  #define HASHX_API __declspec(dllimport)
+#endif
+#ifndef HASHX_API
+  #define HASHX_API
+#endif
+#ifndef HASHX_PRIVATE
+  #define HASHX_PRIVATE
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -79,7 +101,7 @@ extern "C" {
  * @return pointer to a new HashX instance. Returns NULL on memory allocation 
  *         failure and HASHX_NOTSUPP if the requested type is not supported.
 */
-hashx_ctx* hashx_alloc(hashx_type type);
+HASHX_API hashx_ctx* hashx_alloc(hashx_type type);
 
 /*
  * Create a new HashX function from seed.
@@ -90,7 +112,7 @@ hashx_ctx* hashx_alloc(hashx_type type);
  *
  * @return 1 on success, 0 on failure.                                         
 */
-int hashx_make(hashx_ctx* ctx, const void* seed, size_t size);
+HASHX_API int hashx_make(hashx_ctx* ctx, const void* seed, size_t size);
 
 /*
  * Execute the HashX function.
@@ -101,14 +123,14 @@ int hashx_make(hashx_ctx* ctx, const void* seed, size_t size);
  * @param output is a pointer to the result buffer. HASHX_SIZE bytes will be
  *        written.
  s*/
-void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output);
+HASHX_API void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output);
 
 /*
  * Free a HashX instance.
  *
  * @param ctx is pointer to a HashX instance.
 */
-void hashx_free(hashx_ctx* ctx);
+HASHX_API void hashx_free(hashx_ctx* ctx);
 
 #ifdef __cplusplus
 }

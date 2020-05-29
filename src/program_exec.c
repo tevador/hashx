@@ -96,15 +96,19 @@ static FORCE_INLINE uint64_t sign_extend_2s_compl(uint32_t x) {
 }
 
 void hashx_program_execute(const hashx_program* program, uint64_t r[8]) {
+	int target = 0;
+	bool branch_enable = true;
+	uint32_t result = 0;
+	int branch_idx = 0;
 	for (int i = 0; i < program->code_size; ++i) {
 		const instruction* instr = &program->code[i];
 		switch (instr->opcode)
 		{
 		case INSTR_UMULH_R:
-			r[instr->dst] = umulh(r[instr->dst], r[instr->src]);
+			result = r[instr->dst] = umulh(r[instr->dst], r[instr->src]);
 			break;
 		case INSTR_SMULH_R:
-			r[instr->dst] = smulh(r[instr->dst], r[instr->src]);
+			result = r[instr->dst] = smulh(r[instr->dst], r[instr->src]);
 			break;
 		case INSTR_MUL_R:
 			r[instr->dst] *= r[instr->src];
@@ -129,6 +133,20 @@ void hashx_program_execute(const hashx_program* program, uint64_t r[8]) {
 			break;
 		case INSTR_XOR_C:
 			r[instr->dst] ^= sign_extend_2s_compl(instr->imm32);
+			break;
+		case INSTR_TARGET:
+			target = i;
+			break;
+		case INSTR_BRANCH:
+			if (branch_enable && (result & instr->imm32) == 0) {
+				i = target;
+				branch_enable = false;
+#ifdef HASHX_PROGRAM_STATS
+				((hashx_program*)program)->branch_count++;
+				((hashx_program*)program)->branches[branch_idx]++;
+#endif
+			}
+			branch_idx++;
 			break;
 		default:
 			UNREACHABLE;

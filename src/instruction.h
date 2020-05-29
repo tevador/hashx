@@ -17,6 +17,8 @@ typedef enum instr_type {
 	INSTR_ROR_C,     /* rotation by a constant */
 	INSTR_ADD_C,     /* addition of a constant */
 	INSTR_XOR_C,     /* xor with a constant */
+	INSTR_TARGET,    /* branch instruction target */
+	INSTR_BRANCH,    /* conditional branch */
 } instr_type;
 
 typedef struct instruction {

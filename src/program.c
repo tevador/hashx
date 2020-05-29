@@ -11,12 +11,12 @@
 #include "siphash_rng.h"
 
 /* instructions are generated until this CPU cycle */
-#define TARGET_CYCLE 170
+#define TARGET_CYCLE 192
 
 /* requirements for the program to be acceptable */
-#define REQUIREMENT_SIZE 510
-#define REQUIREMENT_MUL_COUNT 170
-#define REQUIREMENT_LATENCY 173
+#define REQUIREMENT_SIZE 512
+#define REQUIREMENT_MUL_COUNT 192
+#define REQUIREMENT_LATENCY 195
 
 /* R5 (x86 = r13) register cannot be used as the destination of INSTR_ADD_RS */
 #define REGISTER_NEEDS_DISPLACEMENT 5
@@ -24,6 +24,8 @@
 #define PORT_MAP_SIZE (TARGET_CYCLE + 4)
 #define NUM_PORTS 3
 #define MAX_RETRIES 1
+#define LOG2_BRANCH_PROB 4
+#define BRANCH_MASK 0x80000000
 
 #define TRACE false
 #define TRACE_PRINT(...) do { if (TRACE) printf(__VA_ARGS__); } while (false)
@@ -51,6 +53,10 @@ typedef enum execution_port {
 	PORT_P015 = PORT_P0 | PORT_P1 | PORT_P5
 } execution_port;
 
+static const char* execution_port_names[] = {
+	"PORT_NONE", "PORT_P0", "PORT_P1", "PORT_P01", "PORT_P5", "PORT_P05", "PORT_P15", "PORT_P015"
+};
+
 typedef struct instr_template {
 	instr_type type;          /* instruction type */
 	const char* x86_asm;      /* x86 assembly */
@@ -64,6 +70,7 @@ typedef struct instr_template {
 	bool distinct_dst;        /* if dst and src must be distinct */
 	bool op_par_src;          /* operation parameter is equal to src */
 	bool has_src;             /* if the instruction has a source operand */
+	bool has_dst;             /* if the instr. has a destination operand */
 } instr_template;
 
 typedef struct register_info {
@@ -72,8 +79,16 @@ typedef struct register_info {
 	int last_op_par;          /* parameter of the last op (-1 = constant) */
 } register_info;
 
+typedef struct program_item {
+	const instr_template** templates;
+	uint32_t mask0;
+	uint32_t mask1;
+	bool duplicates;
+} program_item;
+
 typedef struct generator_ctx {
 	int cycle;
+	int sub_cycle;
 	int mul_count;
 	bool chain_mul;
 	int latency;
@@ -94,7 +109,8 @@ const static instr_template tpl_umulh_r = {
 	.imm_can_be_0 = false,
 	.distinct_dst = false,
 	.op_par_src = false,
-	.has_src = true
+	.has_src = true,
+	.has_dst = true,
 };
 
 const static instr_template tpl_smulh_r = {
@@ -109,7 +125,8 @@ const static instr_template tpl_smulh_r = {
 	.imm_can_be_0 = false,
 	.distinct_dst = false,
 	.op_par_src = false,
-	.has_src = true
+	.has_src = true,
+	.has_dst = true,
 };
 
 const static instr_template tpl_mul_r = {
@@ -124,7 +141,8 @@ const static instr_template tpl_mul_r = {
 	.imm_can_be_0 = false,
 	.distinct_dst = true,
 	.op_par_src = true,
-	.has_src = true
+	.has_src = true,
+	.has_dst = true,
 };
 
 const static instr_template tpl_sub_r = {
@@ -139,7 +157,8 @@ const static instr_template tpl_sub_r = {
 	.imm_can_be_0 = false,
 	.distinct_dst = true,
 	.op_par_src = true,
-	.has_src = true
+	.has_src = true,
+	.has_dst = true,
 };
 
 const static instr_template tpl_neg = {
@@ -154,7 +173,8 @@ const static instr_template tpl_neg = {
 	.imm_can_be_0 = false, /*    xor r, -1  */
 	.distinct_dst = true,  /*    add r, 1   */
 	.op_par_src = false,
-	.has_src = false
+	.has_src = false,
+	.has_dst = true,
 };
 
 const static instr_template tpl_xor_r = {
@@ -169,7 +189,8 @@ const static instr_template tpl_xor_r = {
 	.imm_can_be_0 = false,
 	.distinct_dst = true,
 	.op_par_src = true,
-	.has_src = true
+	.has_src = true,
+	.has_dst = true,
 };
 
 const static instr_template tpl_add_rs = {
@@ -184,7 +205,8 @@ const static instr_template tpl_add_rs = {
 	.imm_can_be_0 = true,
 	.distinct_dst = true,
 	.op_par_src = true,
-	.has_src = true
+	.has_src = true,
+	.has_dst = true,
 };
 
 const static instr_template tpl_ror_c = {
@@ -199,7 +221,8 @@ const static instr_template tpl_ror_c = {
 	.imm_can_be_0 = false,
 	.distinct_dst = true,
 	.op_par_src = false,
-	.has_src = false
+	.has_src = false,
+	.has_dst = true,
 };
 
 const static instr_template tpl_add_c = {
@@ -214,7 +237,8 @@ const static instr_template tpl_add_c = {
 	.imm_can_be_0 = false,
 	.distinct_dst = true,
 	.op_par_src = false,
-	.has_src = false
+	.has_src = false,
+	.has_dst = true,
 };
 
 const static instr_template tpl_xor_c = {
@@ -229,38 +253,168 @@ const static instr_template tpl_xor_c = {
 	.imm_can_be_0 = false,
 	.distinct_dst = true,
 	.op_par_src = false,
-	.has_src = false
+	.has_src = false,
+	.has_dst = true,
 };
 
-const static instr_template* instr_lookup[] = {	
+
+const static instr_template tpl_target = {
+	.type = INSTR_TARGET,
+	.x86_asm = "cmovz esi, edi",
+	.x86_size = 5, /* test, cmovz */
+	.latency = 1,
+	.uop1 = PORT_P015,
+	.uop2 = PORT_P015,
+	.immediate_mask = 0,
+	.group = INSTR_TARGET,
+	.imm_can_be_0 = false,
+	.distinct_dst = true,
+	.op_par_src = false,
+	.has_src = false,
+	.has_dst = false,
+};
+
+const static instr_template tpl_branch = {
+	.type = INSTR_BRANCH,
+	.x86_asm = "jz target",
+	.x86_size = 10, /* or, test, jz */
+	.latency = 1,
+	.uop1 = PORT_P015,
+	.uop2 = PORT_P015,
+	.immediate_mask = BRANCH_MASK,
+	.group = INSTR_BRANCH,
+	.imm_can_be_0 = false,
+	.distinct_dst = true,
+	.op_par_src = false,
+	.has_src = false,
+	.has_dst = false,
+};
+
+const static instr_template* instr_lookup[] = {
 	&tpl_ror_c,
 	&tpl_neg,
 	&tpl_xor_c,
 	&tpl_add_c,
-	&tpl_ror_c,
+	&tpl_add_c,
 	&tpl_sub_r,
 	&tpl_xor_r,
 	&tpl_add_rs,
 };
 
+const static instr_template* wide_mul_lookup[] = {
+	&tpl_smulh_r,
+	&tpl_umulh_r
+};
+
+const static instr_template* mul_lookup = &tpl_mul_r;
+const static instr_template* target_lookup = &tpl_target;
+const static instr_template* branch_lookup = &tpl_branch;
+
+const static program_item item_mul = {
+	.templates = &mul_lookup,
+	.mask0 = 0,
+	.mask1 = 0,
+	.duplicates = true
+};
+
+const static program_item item_target = {
+	.templates = &target_lookup,
+	.mask0 = 0,
+	.mask1 = 0,
+	.duplicates = true
+};
+
+const static program_item item_branch = {
+	.templates = &branch_lookup,
+	.mask0 = 0,
+	.mask1 = 0,
+	.duplicates = true
+};
+
+const static program_item item_wide_mul = {
+	.templates = wide_mul_lookup,
+	.mask0 = 1,
+	.mask1 = 1,
+	.duplicates = true
+};
+
+const static program_item item_any = {
+	.templates = instr_lookup,
+	.mask0 = 7,
+	.mask1 = 3, /* instructions that don't need a src register */
+	.duplicates = false
+};
+
+const static program_item* program_layout[] = {
+	&item_mul,
+	&item_target,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_wide_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_branch,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_wide_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+	&item_mul,
+	&item_any,
+	&item_any,
+};
+
 static const instr_template* select_template(generator_ctx* ctx, instr_type last_instr, int attempt) {
-	if (ctx->mul_count < ctx->cycle + 1) {
-		if (ctx->mul_count % 4 == 0) /* 25% of multiplications are 64x64->128-bit */
-			return (hashx_siphash_rng_u8(&ctx->gen) % 2) ? &tpl_smulh_r : &tpl_umulh_r;
-		return &tpl_mul_r;
-	}
+	const program_item* item = program_layout[ctx->sub_cycle % 36];
 	const instr_template* tpl;
 	do {
-		/* if the previous attempt failed, try instructions that don't need a src register */
-		tpl = instr_lookup[hashx_siphash_rng_u8(&ctx->gen) % (attempt > 0 ? 4 : 8)];
-	} while (tpl->group == last_instr);
+		int index = item->mask0 ? hashx_siphash_rng_u8(&ctx->gen) & (attempt > 0 ? item->mask1 : item->mask0) : 0;
+		tpl = item->templates[index];
+	} while (!item->duplicates && tpl->group == last_instr);
 	return tpl;
+}
+
+static uint32_t branch_mask(siphash_rng* gen) {
+	uint32_t mask = 0;
+	int popcnt = 0;
+	while (popcnt < LOG2_BRANCH_PROB) {
+		int bit = hashx_siphash_rng_u8(gen) % 32;
+		uint32_t bitmask = 1U << bit;
+		if (!(mask & bitmask)) {
+			mask |= bitmask;
+			popcnt++;
+		}
+	}
+	return mask;
 }
 
 static void instr_from_template(const instr_template* tpl, siphash_rng* gen, instruction* instr) {
 	instr->opcode = tpl->type;
 	if (tpl->immediate_mask) {
-		do {
+		if (tpl->immediate_mask == BRANCH_MASK) {
+			instr->imm32 = branch_mask(gen);
+		}
+		else do {
 			instr->imm32 = hashx_siphash_rng_u32(gen) & tpl->immediate_mask;
 		} while (instr->imm32 == 0 && !tpl->imm_can_be_0);
 	}
@@ -274,6 +428,9 @@ static void instr_from_template(const instr_template* tpl, siphash_rng* gen, ins
 	}
 	if (!tpl->has_src) {
 		instr->src = -1;
+	}
+	if (!tpl->has_dst) {
+		instr->dst = -1;
 	}
 }
 
@@ -300,7 +457,7 @@ static bool select_destination(const instr_template* tpl, instruction* instr, ge
 	// * value must be ready at the required cycle
 	// * cannot be the same as the source register unless the instruction allows it
 	//   - this avoids optimizable instructions such as "xor r, r" or "sub r, r"
-	// * register cannot be multiplied twice in a row unless allowChainedMul is true 
+	// * register cannot be multiplied twice in a row unless chain_mul is true
 	//   - this avoids accumulation of trailing zeroes in registers due to excessive multiplication
 	//   - allowChainedMul is set to true if an attempt to find source/destination registers failed (this is quite rare, but prevents a catastrophic failure of the generator)
 	// * either the last instruction applied to the register or its source must be different than this instruction
@@ -350,18 +507,21 @@ static int schedule_uop(execution_port uop, generator_ctx* ctx, int cycle, bool 
 			if (commit) {
 				ctx->ports[cycle][2] = uop;
 			}
+			TRACE_PRINT("%s scheduled to port P5 at cycle %i (commit = %i)\n", execution_port_names[uop], cycle, commit);
 			return cycle;
 		}
 		if ((uop & PORT_P0) && !ctx->ports[cycle][0]) {
 			if (commit) {
 				ctx->ports[cycle][0] = uop;
 			}
+			TRACE_PRINT("%s scheduled to port P0 at cycle %i (commit = %i)\n", execution_port_names[uop], cycle, commit);
 			return cycle;
 		}
 		if ((uop & PORT_P1) != 0 && !ctx->ports[cycle][1]) {
 			if (commit) {
 				ctx->ports[cycle][1] = uop;
 			}
+			TRACE_PRINT("%s scheduled to port P1 at cycle %i (commit = %i)\n", execution_port_names[uop], cycle, commit);
 			return cycle;
 		}
 	}
@@ -383,7 +543,7 @@ static int schedule_instr(const instr_template* tpl, generator_ctx* ctx, bool co
 			if (cycle1 >= 0 && cycle1 == cycle2) {
 				if (commit) {
 					schedule_uop(tpl->uop1, ctx, cycle, true);
-					schedule_uop(tpl->uop2, ctx, cycle, false);
+					schedule_uop(tpl->uop2, ctx, cycle, true);
 				}
 				return cycle1;
 			}
@@ -402,6 +562,7 @@ static void print_registers(const generator_ctx* ctx) {
 bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 	generator_ctx ctx = {
 		.cycle = 0,
+		.sub_cycle = 0, /* 3 sub-cycles = 1 cycle */
 		.mul_count = 0,
 		.chain_mul = false,
 		.latency = 0,
@@ -414,9 +575,7 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 		ctx.registers[i].last_op_par = -1;
 	}
 	program->code_size = 0;
-	int sub_cycle = 0; /* 3 sub-cycles = 1 CPU cycle
-						  this assumes that the CPU can decode 3 instructions
-						  per cycle on average */
+
 	int attempt = 0;
 	instr_type last_instr = -1;
 #ifdef HASHX_PROGRAM_STATS
@@ -425,7 +584,7 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 
 	while (program->code_size < HASHX_PROGRAM_MAX_SIZE) {
 		instruction* instr = &program->code[program->code_size];
-		TRACE_PRINT("CYCLE: %i\n", ctx.cycle);
+		TRACE_PRINT("CYCLE: %i/%i\n", ctx.sub_cycle, ctx.cycle);
 
 		/* select an instruction template */
 		const instr_template* tpl = select_template(&ctx, last_instr, attempt);
@@ -457,8 +616,8 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 					print_registers(&ctx);
 					/* __debugbreak(); */
 				}
-				sub_cycle += 3;
-				ctx.cycle = sub_cycle / 3;
+				ctx.sub_cycle += 3;
+				ctx.cycle = ctx.sub_cycle / 3;
 				attempt = 0;
 				continue;
 			}
@@ -466,7 +625,7 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 		}
 
 		/* find a destination register that will be ready when this instruction executes */
-		{
+		if (tpl->has_dst) {
 			if (!select_destination(tpl, instr, &ctx, scheduleCycle)) {
 				TRACE_PRINT("; dst STALL (attempt %i)\n", attempt);
 				if (attempt++ < MAX_RETRIES) {
@@ -477,8 +636,8 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 					print_registers(&ctx);
 					/* __debugbreak(); */
 				}
-				sub_cycle += 3;
-				ctx.cycle = sub_cycle / 3;
+				ctx.sub_cycle += 3;
+				ctx.cycle = ctx.sub_cycle / 3;
 				attempt = 0;
 				continue;
 			}
@@ -494,20 +653,20 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 			break;
 		}
 
-		TRACE_PRINT("Scheduled at cycle %i\n", scheduleCycle);
-
 		/* terminating condition */
 		if (scheduleCycle >= TARGET_CYCLE) {
 			break;
 		}
 
-		register_info* ri = &ctx.registers[instr->dst];
-		int retireCycle = scheduleCycle + tpl->latency;
-		ri->latency = retireCycle;
-		ri->last_op = tpl->group;
-		ri->last_op_par = instr->op_par;
-		ctx.latency = MAX(retireCycle, ctx.latency);
-		TRACE_PRINT("; RETIRED at cycle %i\n", retireCycle);
+		if (tpl->has_dst) {
+			register_info* ri = &ctx.registers[instr->dst];
+			int retireCycle = scheduleCycle + tpl->latency;
+			ri->latency = retireCycle;
+			ri->last_op = tpl->group;
+			ri->last_op_par = instr->op_par;
+			ctx.latency = MAX(retireCycle, ctx.latency);
+			TRACE_PRINT("; RETIRED at cycle %i\n", retireCycle);
+		}
 
 		program->code_size++;
 #ifdef HASHX_PROGRAM_STATS
@@ -516,8 +675,9 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 
 		ctx.mul_count += is_mul(instr->opcode);
 
-		++sub_cycle;
-		ctx.cycle = sub_cycle / 3;
+		++ctx.sub_cycle;
+		ctx.sub_cycle += (tpl->uop2 != PORT_NONE);
+		ctx.cycle = ctx.sub_cycle / 3;
 	}
 
 #ifdef HASHX_PROGRAM_STATS
@@ -531,6 +691,8 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 	   Assumes 1 cycle latency for all operations and unlimited parallelization. */
 	for (int i = 0; i < program->code_size; ++i) {
 		instruction* instr = &program->code[i];
+		if (instr->dst < 0)
+			continue;
 		int last_dst = program->asic_latencies[instr->dst] + 1;
 		int lat_src = instr->dst != instr->src ? program->asic_latencies[instr->src] + 1 : 0;
 		program->asic_latencies[instr->dst] = MAX(last_dst, lat_src);
@@ -546,6 +708,8 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 	}
 
 	program->ipc = program->code_size / (double)program->cpu_latency;
+	program->branch_count = 0;
+	memset(program->branches, 0, sizeof(program->branches));
 
 	if (TRACE) {
 		printf("; ALU port utilization:\n");
@@ -561,7 +725,7 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 #endif
 
 	/* reject programs that don't meet the uniform complexity requirements */
-	/* this doesn't happen in practice */
+	/* this happens in less than 1 seed out of 10000 */
 	return
 		(program->code_size == REQUIREMENT_SIZE) &
 		(ctx.mul_count == REQUIREMENT_MUL_COUNT) &
@@ -571,6 +735,7 @@ bool hashx_program_generate(const siphash_state* key, hashx_program* program) {
 static const char* x86_reg_map[] = { "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15" };
 
 void hashx_program_asm_x86(const hashx_program* program) {
+	int target = 0;
 	for (unsigned i = 0; i < program->code_size; ++i) {
 		const instruction* instr = &program->code[i];
 		switch (instr->opcode)
@@ -608,6 +773,16 @@ void hashx_program_asm_x86(const hashx_program* program) {
 			break;
 		case INSTR_NEG:
 			printf("neg %s\n", x86_reg_map[instr->dst]);
+			break;
+		case INSTR_TARGET:
+			printf("test edi, edi\n");
+			printf("target_%i: cmovz esi, edi\n", i);
+			target = i;
+			break;
+		case INSTR_BRANCH:
+			printf("or edx, esi\n");
+			printf("test edx, %i\n", instr->imm32);
+			printf("jz target_%i\n", target);
 			break;
 		default:
 			UNREACHABLE;
