@@ -161,22 +161,6 @@ const static instr_template tpl_sub_r = {
 	.has_dst = true,
 };
 
-const static instr_template tpl_neg = {
-	.type = INSTR_NEG,
-	.x86_asm = "neg r",
-	.x86_size = 3,
-	.latency = 1,
-	.uop1 = PORT_P015,
-	.uop2 = PORT_NONE,
-	.immediate_mask = 0,
-	.group = INSTR_ADD_C,  /* two's complement negation is basically: */
-	.imm_can_be_0 = false, /*    xor r, -1  */
-	.distinct_dst = true,  /*    add r, 1   */
-	.op_par_src = false,
-	.has_src = false,
-	.has_dst = true,
-};
-
 const static instr_template tpl_xor_r = {
 	.type = INSTR_XOR_R,
 	.x86_asm = "xor r,r",
@@ -292,12 +276,12 @@ const static instr_template tpl_branch = {
 
 const static instr_template* instr_lookup[] = {
 	&tpl_ror_c,
-	&tpl_neg,
 	&tpl_xor_c,
 	&tpl_add_c,
 	&tpl_add_c,
 	&tpl_sub_r,
 	&tpl_xor_r,
+	&tpl_xor_c,
 	&tpl_add_rs,
 };
 
@@ -770,9 +754,6 @@ void hashx_program_asm_x86(const hashx_program* program) {
 			printf("mov rax, %s\n", x86_reg_map[instr->dst]);
 			printf("imul %s\n", x86_reg_map[instr->src]);
 			printf("mov %s, rdx\n", x86_reg_map[instr->dst]);
-			break;
-		case INSTR_NEG:
-			printf("neg %s\n", x86_reg_map[instr->dst]);
 			break;
 		case INSTR_TARGET:
 			printf("test edi, edi\n");

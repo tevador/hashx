@@ -107,10 +107,6 @@ void hashx_compile_x86(const hashx_program* program, uint8_t* code) {
 			EMIT_U16(pos, 0x2b4d);
 			EMIT_BYTE(pos, 0xc0 | (instr->dst << 3) | instr->src);
 			break;
-		case INSTR_NEG:
-			EMIT_U16(pos, 0xf749);
-			EMIT_BYTE(pos, 0xd8 | instr->dst);
-			break;
 		case INSTR_XOR_R:
 			EMIT_U16(pos, 0x334d);
 			EMIT_BYTE(pos, 0xc0 | (instr->dst << 3) | instr->src);

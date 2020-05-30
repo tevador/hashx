@@ -116,9 +116,6 @@ void hashx_program_execute(const hashx_program* program, uint64_t r[8]) {
 		case INSTR_SUB_R:
 			r[instr->dst] -= r[instr->src];
 			break;
-		case INSTR_NEG:
-			r[instr->dst] = -r[instr->dst];
-			break;
 		case INSTR_XOR_R:
 			r[instr->dst] ^= r[instr->src];
 			break;
