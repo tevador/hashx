@@ -5,7 +5,7 @@
 #include "force_inline.h"
 #include "unreachable.h"
 #include "siphash.h"
-#include "endian.h"
+#include "hashx_endian.h"
 
 #if defined(__SIZEOF_INT128__)
 typedef unsigned __int128 uint128_t;

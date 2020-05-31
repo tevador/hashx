@@ -2,7 +2,7 @@
 /* See LICENSE for licensing information */
 
 #include "siphash.h"
-#include "endian.h"
+#include "hashx_endian.h"
 #include "unreachable.h"
 
 uint64_t hashx_siphash13_ctr(uint64_t input, const siphash_state* keys) {

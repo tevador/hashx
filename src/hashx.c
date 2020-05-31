@@ -7,7 +7,7 @@
 
 #include <hashx.h>
 #include "blake2.h"
-#include "endian.h"
+#include "hashx_endian.h"
 #include "program.h"
 #include "context.h"
 #include "compiler.h"
