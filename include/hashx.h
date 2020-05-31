@@ -123,7 +123,7 @@ HASHX_API int hashx_make(hashx_ctx* ctx, const void* seed, size_t size);
  * @param output is a pointer to the result buffer. HASHX_SIZE bytes will be
  *        written.
  s*/
-HASHX_API void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output);
+HASHX_API void hashx_exec(const hashx_ctx* ctx, HASHX_INPUT, void* output);
 
 /*
  * Free a HashX instance.

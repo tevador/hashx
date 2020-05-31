@@ -89,7 +89,7 @@ void* hashx_vm_alloc_huge(size_t bytes) {
 	void* mem;
 #ifdef HASHX_WIN
 	set_privilege("SeLockMemoryPrivilege", 1);
-	auto page_min = GetLargePageMinimum();
+	SIZE_T page_min = GetLargePageMinimum();
 	if (page_min > 0) {
 		mem = VirtualAlloc(NULL, ALIGN_SIZE(bytes, page_min), MEM_COMMIT
 			| MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);

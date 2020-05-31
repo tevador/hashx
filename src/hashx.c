@@ -58,7 +58,7 @@ int hashx_make(hashx_ctx* ctx, const void* seed, size_t size) {
 	return initialize_program(ctx, ctx->program, keys);
 }
 
-void hashx_exec(hashx_ctx* ctx, HASHX_INPUT, void* output) {
+void hashx_exec(const hashx_ctx* ctx, HASHX_INPUT, void* output) {
 	assert(ctx != NULL && ctx != HASHX_NOTSUPP);
 	assert(output != NULL);
 	assert(ctx->has_program);

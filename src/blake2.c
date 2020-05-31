@@ -297,7 +297,7 @@ int hashx_blake2b_init_param(blake2b_state* S, const blake2b_param* P) {
 static void blake2b_compress(blake2b_state* S, const uint8_t* block) {
 	uint64_t m[16];
 	uint64_t v[16];
-	unsigned int i, r;
+	unsigned int i;
 
 	for (i = 0; i < 16; ++i) {
 		m[i] = load64(block + i * sizeof(m[i]));
@@ -337,7 +337,7 @@ static void blake2b_compress(blake2b_state* S, const uint8_t* block) {
 static void blake2b_compress_4r(blake2b_state* S, const uint8_t* block) {
 	uint64_t m[16];
 	uint64_t v[16];
-	unsigned int i, r;
+	unsigned int i;
 
 	for (i = 0; i < 16; ++i) {
 		m[i] = load64(block + i * sizeof(m[i]));
