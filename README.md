@@ -81,11 +81,15 @@ mode) or in about 1-2 μs (in interpreted mode).
 
 ## Security
 
-HashX passes all hash quality tests in [SMHasher](https://github.com/tevador/smhasher) and should provide
-strong preimage resistance. No other security guarantees are made. Using HashX
-outside of the scope of proof of work or client puzzles is not recommended.
+HashX should provide strong preimage resistance. No other security guarantees are made. About
+ 99% of HashX instances pass [SMHasher](https://github.com/tevador/smhasher),
+ but using HashX as a generic hash function is not recommended.
 
-In particular, no secret values should be used as inputs to HashX because the generated instructions
+Known vulnerabilities that should not affect intended use cases:
+
+1. HashX is not collision resistant. Around 0.2% of seeds produce "weak" hash functions for
+which hash collisions are plentiful.
+2. Secret values should not be used as inputs to HashX because the generated instructions
 include data-dependent branches by design.
 
 ## Protocols based on HashX
