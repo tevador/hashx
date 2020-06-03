@@ -76,10 +76,24 @@ void hashx_exec(const hashx_ctx* ctx, HASHX_INPUT, void* output) {
 		hashx_program_execute(ctx->program, r);
 	}
 
-	/* Hash finalization with 1 SipRound per 4 registers.
-	 * This is required to pass SMHasher.
-	 * Adding more SipRounds doesn't seem to have any effects on the
-	 * quality of the hash. TODO: Evaluate from a security standpoint. */
+	/* Hash finalization to remove bias toward 0 caused by multiplications */
+#ifndef HASHX_BLOCK_MODE
+	r[0] += ctx->keys.v0;
+	r[1] += ctx->keys.v1;
+	r[6] += ctx->keys.v2;
+	r[7] += ctx->keys.v3;
+#else
+	const uint8_t* p = (const uint8_t*)&ctx->params;
+	r[0] ^= load64(&p[8 * 0]);
+	r[1] ^= load64(&p[8 * 1]);
+	r[2] ^= load64(&p[8 * 2]);
+	r[3] ^= load64(&p[8 * 3]);
+	r[4] ^= load64(&p[8 * 4]);
+	r[5] ^= load64(&p[8 * 5]);
+	r[6] ^= load64(&p[8 * 6]);
+	r[7] ^= load64(&p[8 * 7]);
+#endif
+	/* 1 SipRound per 4 registers is enough to pass SMHasher. */
 	SIPROUND(r[0], r[1], r[2], r[3]);
 	SIPROUND(r[4], r[5], r[6], r[7]);
 

@@ -59,7 +59,7 @@ make
 Because HashX is meant to be used in proof-of-work schemes and client puzzles,
 the input is a 64-bit counter value. If you need to hash arbitrary data, build
 with `-DHASHX_BLOCK_MODE=ON`. This will change the API to accept `const void*, size_t` instead of `uint64_t`.
-However, it is strongly recommended to use the counter mode, which is up to 50% faster for short inputs.
+However, it is strongly recommended to use the counter mode, which is almost twice faster for short inputs.
 
 ### Hash size (default: 32)
 
