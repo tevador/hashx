@@ -79,6 +79,11 @@ HashX was designed for fast verification. Generating a hash function from seed
 takes about 50 μs and a 64-bit nonce can be hashed in under 100 ns (in compiled
 mode) or in about 1-2 μs (in interpreted mode).
 
+A benchmark executable is included:
+```
+./hashx-bench --seeds 500
+```
+
 ## Security
 
 HashX should provide strong preimage resistance. No other security guarantees are made. About

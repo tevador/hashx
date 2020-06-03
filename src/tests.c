@@ -6,10 +6,7 @@
 #endif
 
 #include <assert.h>
-#include <stdio.h>
-#include <hashx.h>
-#include <stdbool.h>
-#include <string.h>
+#include "test_utils.h"
 
 typedef bool test_func();
 
@@ -40,34 +37,6 @@ static const unsigned char long_input[] = {
 static void run_test(const char* name, test_func* func) {
 	printf("[%2i] %-40s ... ", ++test_no, name);
 	printf(func() ? "PASSED\n" : "SKIPPED\n");
-}
-
-static inline char parse_nibble(char hex) {
-	hex &= ~0x20;
-	return (hex & 0x40) ? hex - ('A' - 10) : hex & 0xf;
-}
-
-static void hex2bin(const char* in, int length, char* out) {
-	for (int i = 0; i < length; i += 2) {
-		char nibble1 = parse_nibble(*in++);
-		char nibble2 = parse_nibble(*in++);
-		*out++ = nibble1 << 4 | nibble2;
-	}
-}
-
-static void output_hex(const char* data, int length) {
-	for (unsigned i = 0; i < length; ++i)
-		printf("%02x", data[i] & 0xff);
-}
-
-static bool hashes_equal(char* a, char* b) {
-	return memcmp(a, b, HASHX_SIZE) == 0;
-}
-
-static bool equals_hex(const void* hash, const char* hex) {
-	char reference[HASHX_SIZE];
-	hex2bin(hex, 2 * HASHX_SIZE, reference);
-	return memcmp(hash, reference, sizeof(reference)) == 0;
 }
 
 static bool test_alloc() {

@@ -80,3 +80,11 @@ include_directories(hashx-tests
 target_compile_definitions(hashx-tests PRIVATE HASHX_STATIC)
 target_link_libraries(hashx-tests
   PRIVATE hashx_static)
+
+add_executable(hashx-bench
+  src/bench.c)
+include_directories(hashx-bench
+  include/)
+target_compile_definitions(hashx-bench PRIVATE HASHX_STATIC)
+target_link_libraries(hashx-bench
+  PRIVATE hashx_static)
