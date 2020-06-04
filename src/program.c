@@ -454,8 +454,8 @@ static bool select_destination(const instr_template* tpl, instruction* instr, ge
 		available &= ((ctx->registers[i].last_op != tpl->group) | (ctx->registers[i].last_op_par != instr->op_par));
 		available &= ((instr->opcode != INSTR_ADD_RS) | (i != REGISTER_NEEDS_DISPLACEMENT));
 		//if (registers[i].latency <= cycle && (canReuse_ || i != src_) && (allowChainedMul || opGroup_ != SuperscalarInstructionType::IMUL_R || registers[i].lastOpGroup != SuperscalarInstructionType::IMUL_R) && (registers[i].lastOpGroup != opGroup_ || registers[i].lastOpPar != opGroupPar_) && (info_->getType() != SuperscalarInstructionType::IADD_RS || i != REGISTER_NEEDS_DISPLACEMENT))
-		if (available)
-			available_regs[regs_count++] = i;
+		available_regs[regs_count] = available ? i : 0;
+		regs_count += available;
 	}
 	return select_register(available_regs, regs_count, &ctx->gen, &instr->dst);
 }
