@@ -81,10 +81,17 @@ target_compile_definitions(hashx-tests PRIVATE HASHX_STATIC)
 target_link_libraries(hashx-tests
   PRIVATE hashx_static)
 
+if(NOT Threads_FOUND AND UNIX AND NOT APPLE)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads)
+endif()
+
 add_executable(hashx-bench
-  src/bench.c)
+  src/bench.c
+  src/hashx_thread.c)
 include_directories(hashx-bench
   include/)
 target_compile_definitions(hashx-bench PRIVATE HASHX_STATIC)
 target_link_libraries(hashx-bench
-  PRIVATE hashx_static)
+  PRIVATE hashx_static
+  PRIVATE ${CMAKE_THREAD_LIBS_INIT})
