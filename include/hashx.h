@@ -77,6 +77,8 @@ typedef enum hashx_type {
         #define HASHX_API __declspec(dllexport)
     #elif !defined(HASHX_STATIC)
         #define HASHX_API __declspec(dllimport)
+    #else
+        #define HASHX_API
     #endif
     #define HASHX_PRIVATE
 #else
