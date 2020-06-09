@@ -72,21 +72,20 @@ typedef enum hashx_type {
 #endif
 
 /* Shared/static library definitions */
-#ifdef HASHX_SHARED
-  #ifdef HASHX_WIN
-    #define HASHX_API __declspec(dllexport)
-  #else
-    #define HASHX_API __attribute__ ((visibility ("default")))
+#ifdef HASHX_WIN
+    #ifdef HASHX_SHARED
+        #define HASHX_API __declspec(dllexport)
+    #elif !defined(HASHX_STATIC)
+        #define HASHX_API __declspec(dllimport)
+    #endif
+    #define HASHX_PRIVATE
+#else
+    #ifdef HASHX_SHARED
+        #define HASHX_API __attribute__ ((visibility ("default")))
+    #else
+        #define HASHX_API __attribute__ ((visibility ("hidden")))
+    #endif
     #define HASHX_PRIVATE __attribute__ ((visibility ("hidden")))
-  #endif
-#elif defined(HASHX_WIN) && !defined(HASHX_STATIC)
-  #define HASHX_API __declspec(dllimport)
-#endif
-#ifndef HASHX_API
-  #define HASHX_API
-#endif
-#ifndef HASHX_PRIVATE
-  #define HASHX_PRIVATE
 #endif
 
 #ifdef __cplusplus
