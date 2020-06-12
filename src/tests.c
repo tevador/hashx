@@ -174,8 +174,8 @@ static bool test_compiler_ctr2() {
 #ifndef HASHX_BLOCK_MODE
 	char hash1[HASHX_SIZE];
 	char hash2[HASHX_SIZE];
-	hashx_exec(ctx_int, counter3, hash1);
-	hashx_exec(ctx_cmp, counter3, hash2);
+	hashx_exec(ctx_int, counter1, hash1);
+	hashx_exec(ctx_cmp, counter1, hash2);
 	assert(hashes_equal(hash1, hash2));
 	return true;
 #else

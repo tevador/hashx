@@ -13,6 +13,7 @@ project(hashx)
 set(hashx_sources
 src/blake2.c 
 src/compiler.c
+src/compiler_a64.c
 src/compiler_x86.c
 src/context.c
 src/hashx.c
