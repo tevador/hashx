@@ -21,6 +21,8 @@
     EMIT_U32(p, 0xf2a0000c           |                               \
         (((x >> 16) & 0xFFFF) << 5));
 
+#ifdef HASHX_COMPILER_A64
+
 static const uint8_t a64_prologue[] = {
 	0x07, 0x1c, 0x40, 0xf9, /* ldr x7, [x0, #56] */
 	0x06, 0x18, 0x40, 0xf9, /* ldr x6, [x0, #48] */
@@ -148,3 +150,5 @@ void hashx_compile_a64(const hashx_program* program, uint8_t* code) {
 	__builtin___clear_cache(code, pos);
 #endif
 }
+
+#endif

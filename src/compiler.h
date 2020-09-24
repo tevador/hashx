@@ -16,9 +16,11 @@ HASHX_PRIVATE void hashx_compile_a64(const hashx_program* program, uint8_t* code
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define HASHX_COMPILER 1
+#define HASHX_COMPILER_X86
 #define hashx_compile hashx_compile_x86
 #elif defined(__aarch64__)
 #define HASHX_COMPILER 1
+#define HASHX_COMPILER_A64
 #define hashx_compile hashx_compile_a64
 #else
 #define HASHX_COMPILER 0

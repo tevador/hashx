@@ -23,6 +23,8 @@
 
 #define GEN_SIB(scale, index, base) ((scale << 6) | (index << 3) | base)
 
+#ifdef HASHX_COMPILER_X86
+
 static const uint8_t x86_prologue[] = {
 #ifndef WINABI
 	0x48, 0x89, 0xF9,             /* mov rcx, rdi */
@@ -145,3 +147,5 @@ void hashx_compile_x86(const hashx_program* program, uint8_t* code) {
 	EMIT(pos, x86_epilogue);
 	hashx_vm_rx(code, COMP_CODE_SIZE);
 }
+
+#endif
