@@ -89,7 +89,8 @@ endif()
 
 add_executable(hashx-bench
   src/bench.c
-  src/hashx_thread.c)
+  src/hashx_thread.c
+  src/hashx_time.c)
 include_directories(hashx-bench
   include/)
 target_compile_definitions(hashx-bench PRIVATE HASHX_STATIC)

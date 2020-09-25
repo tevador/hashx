@@ -4,7 +4,7 @@
 #include "test_utils.h"
 #include "hashx_thread.h"
 #include "hashx_endian.h"
-#include <time.h>
+#include "hashx_time.h"
 #include <limits.h>
 #include <inttypes.h>
 
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 	int64_t total_hashes = 0;
 	printf("Interpret: %i, Target diff.: %" PRIu64 ", Threads: %i\n", interpret, diff_ex, threads);
 	printf("Testing seeds %i-%i with %i nonces each ...\n", start, seeds_end - 1, nonces);
-	clock_t clock_start, clock_end;
+	double time_start, time_end;
 	worker_job* jobs = malloc(sizeof(worker_job) * threads);
 	if (jobs == NULL) {
 		printf("Error: memory allocation failure\n");
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 		jobs[thd].nonces = nonces;
 		jobs[thd].threshold = threshold;
 	}
-	clock_start = clock();
+	time_start = hashx_time();
 	if (threads > 1) {
 		for (int thd = 0; thd < threads; ++thd) {
 			jobs[thd].thread = hashx_thread_create(&worker, &jobs[thd]);
@@ -116,17 +116,14 @@ int main(int argc, char** argv) {
 	else {
 		worker(jobs);
 	}
-	clock_end = clock();
+	time_end = hashx_time();
 	for (int thd = 0; thd < threads; ++thd) {
 		total_hashes += jobs[thd].total_hashes;
 		if (jobs[thd].best_hash < best_hash) {
 			best_hash = jobs[thd].best_hash;
 		}
 	}
-	double elapsed = (clock_end - clock_start) / (double)CLOCKS_PER_SEC;
-#ifndef _MSC_VER
-	elapsed /= threads;
-#endif
+	double elapsed = time_end - time_start;
 	printf("Total hashes: %" PRIi64 "\n", total_hashes);
 	printf("%f hashes/sec.\n", total_hashes / elapsed);
 	printf("%f seeds/sec.\n", seeds / elapsed);
