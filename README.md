@@ -1,3 +1,5 @@
+### Note: HashX has been superseded by [HashWX](https://github.com/tevador/hashwx).
+
 # HashX
 
 HashX is an algorithm designed for client puzzles and proof-of-work schemes.
