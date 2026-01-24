@@ -1,7 +1,7 @@
 # Copyright (c) 2020 tevador <tevador@gmail.com>
 # See LICENSE for licensing information
 
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 3.15)
 
 set(HASHX_VERSION 1)
 set(HASHX_VERSION_MINOR 0)
